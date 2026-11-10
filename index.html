@@ -86,7 +86,7 @@ body { background: var(--night); color: var(--ivory); font-family: var(--sans); 
 .ic svg, .sv { width: 40px; height: 40px; fill: none; stroke: var(--gold-hi); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .wm { position: absolute; right: 70px; top: 150px; font: 800 330px/1 var(--display); letter-spacing: -.05em; color: transparent; -webkit-text-stroke: 2px rgba(216,178,106,.2); pointer-events: none; }
 
-.foot { position: absolute; left: 120px; right: 120px; bottom: 40px; display: flex; align-items: center; justify-content: space-between; font: 500 20px var(--sans); letter-spacing: .22em; text-transform: uppercase; color: rgba(211,220,235,.85); }
+.foot { position: absolute; left: 120px; right: 120px; bottom: 54px; display: flex; align-items: center; justify-content: space-between; font: 500 20px var(--sans); letter-spacing: .22em; text-transform: uppercase; color: rgba(211,220,235,.85); }
 .foot .fb { display: flex; align-items: center; gap: 14px; min-width: 360px; }
 .foot .fb::before { content: ""; width: 40px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
 .foot .pg { font-variant-numeric: tabular-nums; min-width: 360px; text-align: right; }
@@ -358,6 +358,19 @@ body { background: var(--night); color: var(--ivory); font-family: var(--sans); 
 .vchips { display: flex; gap: 18px; margin-top: 54px; }
 .vchips span { display: inline-flex; align-items: center; gap: 12px; padding: 14px 24px; border-radius: 999px; border: 1px solid rgba(244,226,176,.5); background: rgba(216,178,106,.08); font: 600 23px var(--sans); }
 .vchips .sv { width: 30px; height: 30px; }
+
+/* journey plane: flies from slide 1 to the last slide */
+.flight { position: absolute; left: 70px; right: 70px; bottom: 8px; height: 34px; z-index: 5; pointer-events: none; }
+.flight .fpath { position: absolute; left: 0; right: 0; top: 16px; height: 2px; background: repeating-linear-gradient(90deg, rgba(244,226,176,.35) 0 6px, transparent 6px 14px); }
+.flight .fend { position: absolute; top: 12px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(244,226,176,.7); }
+.flight .ftrail { position: absolute; left: 0; top: 15px; height: 4px; width: var(--p, 0%); border-radius: 2px; background: linear-gradient(90deg, rgba(216,178,106,0), var(--gold) 60%, var(--gold-hi)); box-shadow: 0 0 14px rgba(244,226,176,.55); transition: width 1.8s cubic-bezier(.6,0,.2,1); }
+.flight .fplane { position: absolute; top: 0; left: var(--p, 0%); width: 34px; height: 34px; margin-left: -17px; transition: left 1.8s cubic-bezier(.6,0,.2,1); }
+.flight .fplane i { display: block; width: 100%; height: 100%; transition: transform .4s; }
+.flight .fplane.back i { transform: scaleX(-1); }
+.flight .fplane svg { width: 100%; height: 100%; fill: var(--gold-hi); filter: drop-shadow(0 0 10px rgba(244,226,176,.95)); animation: bob 2.4s ease-in-out infinite; }
+.flight .fplane.moving svg { animation: climb 1.8s ease-in-out; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+@keyframes climb { 0% { transform: none; } 30% { transform: translateY(-10px) rotate(-12deg); } 75% { transform: translateY(-6px) rotate(-4deg); } 100% { transform: none; } }
 
 /* ---------- controls ---------- */
 .zone { position: absolute; top: 0; bottom: 0; z-index: 3; cursor: pointer; background: none; border: 0; padding: 0; }
@@ -683,6 +696,7 @@ body { background: var(--night); color: var(--ivory); font-family: var(--sans); 
           </div>
         </section>
       </div>
+      <div class="flight" id="flight" aria-hidden="true"><div class="fpath"></div><span class="fend" style="left:-5px"></span><span class="fend" style="right:-5px"></span><div class="ftrail"></div><div class="fplane" id="fplane"><i><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" transform="rotate(90 12 12)"/></svg></i></div></div>
       <button class="zone prev" id="zprev" aria-label="Previous slide"></button>
       <button class="zone next" id="znext" aria-label="Next slide"></button>
       <div class="loading" id="loading"><div class="in"><img src="logo.webp" alt="">Loading</div></div>
@@ -924,13 +938,15 @@ body { background: var(--night); color: var(--ivory); font-family: var(--sans); 
     if (t !== token) return;
     $('#loading').classList.add('done');
     if (cur >= 0) slides[cur].classList.remove('on');
-    const el = slides[i];
+    const el = slides[i], cur0 = cur;
     el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
     const g = (el.dataset.glow || '1300,-100,-200,600').split(',');
     ['--o1x', '--o1y', '--o2x', '--o2y'].forEach((v, k) => bgfx.style.setProperty(v, g[k] + 'px'));
     el.querySelectorAll('[data-n]').forEach(countUp);
     el.querySelectorAll('[data-to]').forEach(countNum);
     cur = i;
+    { const fp = $('#fplane'); fp.classList.toggle('back', i < cur0); fp.classList.remove('moving'); void fp.offsetWidth; if (cur0 >= 0 && i !== cur0) fp.classList.add('moving');
+      $('#flight').style.setProperty('--p', (N > 1 ? i / (N - 1) * 100 : 0).toFixed(2) + '%'); }
     dots.forEach((d, k) => { d.classList.toggle('cur', k === i); d.classList.toggle('seen', k < i); });
     $('#count').textContent = (i + 1) + ' / ' + N;
     try { history.replaceState(null, '', i ? '#slide-' + (i + 1) : location.pathname); } catch (e) {}
